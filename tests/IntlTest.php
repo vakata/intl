@@ -38,6 +38,7 @@ class IntlTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals('keys', $intl('some.more'));
 		$this->assertEquals('nonexisting', $intl('nonexisting'));
 		$this->assertEquals('some.nonexisting', $intl('some.nonexisting'));
+		$this->assertEquals('default', $intl('some.nonexisting', [], 'default'));
 		$this->assertEquals('', $intl(''));
 	}
 	public function testFromJSONFile() {

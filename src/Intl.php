@@ -107,25 +107,29 @@ class Intl
     /**
      * Get a translated string using its key in the translations array.
      * @method get
-     * @param  string $key     the translation key
-     * @param  array  $replace any variables to replace with
-     * @return string          the final translated string
+     * @param  string       $key     the translation key
+     * @param  array        $replace any variables to replace with
+     * @param  string|null  $default optional value to return if key is not found, `null` returns the key
+     * @return string       the final translated string
      */
-    public function get(string $key, array $replace = []) : string
+    public function get(string $key, array $replace = [], string $default = null) : string
     {
+        if ($default === null) {
+            $default = $key;
+        }
         $tmp = explode('.', $key);
         $val = $this->data;
         foreach ($tmp as $k) {
             if (!isset($val[$k])) {
-                return $key;
+                return $default;
             }
             $val = $val[$k];
         }
         $val = MF::formatMessage($this->code, (string)$val, $replace);
-        return $val === false ? $key : $val;
+        return $val === false ? $default : $val;
     }
-    public function __invoke(string $key, array $replace = []) : string
+    public function __invoke(string $key, array $replace = [], string $default = null) : string
     {
-        return $this->get($key, $replace);
+        return $this->get($key, $replace, $default);
     }
 }
