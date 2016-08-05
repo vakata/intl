@@ -69,7 +69,7 @@ class Intl
             default:
                 throw new IntlException('Invalid file format');
         }
-        if (!$data) {
+        if (!is_array($data)) {
             throw new IntlException('Invalid file contents');
         }
         return $this->fromArray($data);
