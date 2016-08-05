@@ -43,7 +43,7 @@ class Intl
      */
     public function fromArray(array $data) : Intl
     {
-        $this->data = array_replace_recursive($this->data, $temp);
+        $this->data = array_replace_recursive($this->data, $data);
         return $this;
     }
     /**
@@ -121,7 +121,7 @@ class Intl
             }
             $val = $val[$k];
         }
-        $val = \MF::formatMessage($this->code, (string)$val, $replace);
+        $val = MF::formatMessage($this->code, (string)$val, $replace);
         return $val === false ? $key : $val;
     }
     public function __invoke(string $key, array $replace = []) : string
