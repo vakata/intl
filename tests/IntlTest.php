@@ -3,57 +3,63 @@ namespace vakata\intl\test;
 
 class IntlTest extends \PHPUnit_Framework_TestCase
 {
-	protected static $storage = null;
+	protected static $data = [ 'some' => [ 'more' => 'keys', 'even' => 'more' ], 'other' => [ 'key' => 'val' ] ];
 
 	public static function setUpBeforeClass() {
 	}
 	public static function tearDownAfterClass() {
 	}
 	protected function setUp() {
+		file_put_contents(__DIR__ . '/en.json', json_encode(static::$data));
+		file_put_contents(__DIR__ . '/en.ini', "[some]\nmore = \"keys\"\neven = \"more\"\n\n[other]\nkey = \"val\"\n");
+		if (is_file(__DIR__ . '/en_copy.json')) {
+			unlink(__DIR__ . '/en_copy.json');
+		}
 	}
 	protected function tearDown() {
 	}
 
-	public function testCreate() {
-		$data = [ 'initial' => 1 ];
-		self::$storage = new \vakata\intl\Storage($data);
-		$this->assertEquals(1, self::$storage->get('initial'));
-		$data['reference'] = 2;
-		$this->assertEquals(2, self::$storage->get('reference'));
-		$this->assertEquals(true, self::$storage->set('reference2', 3));
-		$this->assertEquals(3, $data['reference2']);
+	public function testCode() {
+		$intl = new \vakata\intl\Intl('en_US');
+		$this->assertEquals('en_US', $intl->getCode());
+		$this->assertEquals('en', $intl->getCode(true));
 	}
-	/**
-	 * @depends testCreate
-	 */
-	public function testSet() {
-		$this->assertEquals('value', self::$storage->set('simple', 'value'));
-		$this->assertEquals('value', self::$storage->get('simple'));
-		$this->assertEquals('overwrite', self::$storage->set('simple', 'overwrite'));
-		$this->assertEquals('overwrite', self::$storage->get('simple'));
-		$this->assertEquals(['nested' => 'value'], self::$storage->set('complex', ['nested' => 'value']));
-		$this->assertEquals(['nested' => 'value'], self::$storage->get('complex'));
-		$this->assertEquals('value', self::$storage->get('complex.nested'));
-		$this->assertEquals(['nested' => ['overwrite' => 'ok']], self::$storage->set('complex', ['nested' => ['overwrite' => 'ok']]));
-		$this->assertEquals('ok', self::$storage->get('complex.nested.overwrite'));
+	public function testFromArray() {
+		$intl = new \vakata\intl\Intl('en_US');
+		$data = [ 'test' => 'test', 'some' => [ 'more' => 'keys' ] ];
+		$intl->fromArray($data);
+		$this->assertEquals($data, $intl->toArray());
 	}
-	/**
-	 * @depends testSet
-	 */
-	public function testGet() {
-		$this->assertEquals('ok', self::$storage->get('complex/nested/overwrite', null, '/'));
-		$this->assertEquals(null, self::$storage->get('complex.nested.overwrite', null, '/'));
-		$this->assertEquals('default', self::$storage->get('complex.nested.overwrite2', 'default'));
+	public function testAccess() {
+		$intl = new \vakata\intl\Intl('en_US');
+		$data = [ 'test' => 'test', 'some' => [ 'more' => 'keys' ] ];
+		$intl->fromArray($data);
+		$this->assertEquals('test', $intl('test'));
+		$this->assertEquals('keys', $intl('some.more'));
+		$this->assertEquals('nonexisting', $intl('nonexisting'));
+		$this->assertEquals('some.nonexisting', $intl('some.nonexisting'));
+		$this->assertEquals('', $intl(''));
 	}
-	/**
-	 * @depends testSet
-	 */
-	public function testDel() {
-		$this->assertEquals(null, self::$storage->del('complex2'));
-		$this->assertEquals(null, self::$storage->del('complex.nested2.nested2'));
-		$this->assertEquals('ok', self::$storage->del('complex.nested.overwrite'));
-		$this->assertEquals([], self::$storage->get('complex.nested'));
-		$this->assertEquals(['nested'=>[]], self::$storage->del('complex'));
-		$this->assertEquals(null, self::$storage->get('complex'));
+	public function testFromJSONFile() {
+		$intl = new \vakata\intl\Intl('en_US');
+		$intl->fromFile(__DIR__ . '/en.json', 'json');
+		$this->assertEquals(static::$data, $intl->toArray());
+	}
+	public function testFromINIFile() {
+		$intl = new \vakata\intl\Intl('en_US');
+		$intl->fromFile(__DIR__ . '/en.ini', 'ini');
+		$this->assertEquals(static::$data, $intl->toArray());
+	}
+	public function testToJSONFile() {
+		$intl = new \vakata\intl\Intl('en_US');
+		$intl->fromFile(__DIR__ . '/en.json', 'json');
+		$intl->toFile(__DIR__ . '/en_copy.json', 'json');
+		$this->assertEquals(static::$data, json_decode(file_get_contents(__DIR__ . '/en_copy.json'), true));
+		unlink(__DIR__ . '/en_copy.json');
+	}
+	public function testFormatter() {
+		$intl = new \vakata\intl\Intl('bg_BG');
+		$intl->fromArray(['test' => 'В момента е {0, date, medium} {0, time}']);
+		$this->assertEquals('В момента е 1.01.1970 г. 2:00:00', $intl('test', [0]));
 	}
 }
