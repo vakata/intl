@@ -59,7 +59,7 @@ class IntlTest extends \PHPUnit_Framework_TestCase
 	}
 	public function testFormatter() {
 		$intl = new \vakata\intl\Intl('bg_BG');
-		$intl->fromArray(['test' => 'В момента е {0, date, medium} {0, time}']);
-		$this->assertEquals('В момента е 1.01.1970 г. 2:00:00', $intl('test', [0]));
+		$intl->fromArray(['test' => 'Всичко е {0}']);
+		$this->assertEquals('Всичко е ОК', $intl('test', ['ОК']));
 	}
 }
