@@ -16,7 +16,6 @@ class Intl
 
     /**
      * Create a new instance
-     * @method __construct
      * @param  string      $code the locale code to use, defaults to `en_US`
      */
     public function __construct(string $code = 'en_US')
@@ -26,7 +25,6 @@ class Intl
 
     /**
      * Get the locale code
-     * @method getCode
      * @param  bool|boolean $short if `true` return a short (`en`), otherwise a full code (`en_US`), defaults to `false`
      * @return string the code
      */
@@ -37,7 +35,6 @@ class Intl
 
     /**
      * Load all translations from an array
-     * @method fromArray
      * @param  array     $data the translations
      * @return self
      */
@@ -48,7 +45,6 @@ class Intl
     }
     /**
      * Load all translations from a file - can be a JSON or INI file.
-     * @method fromFile
      * @param  string   $location the file location
      * @param  string   $format   the file format (defaults to 'json')
      * @return self
@@ -77,7 +73,6 @@ class Intl
 
     /**
      * Get all translations as an array
-     * @method toArray
      * @return array  the translations
      */
     public function toArray() : array
@@ -86,7 +81,6 @@ class Intl
     }
     /**
      * Save all translations to a file
-     * @method toFile
      * @param  string $location the location to write the file to
      * @param  string $format   the file format (defaults to `'json'`)
      * @return bool             was the file successfully written
@@ -106,7 +100,6 @@ class Intl
 
     /**
      * Get a translated string using its key in the translations array.
-     * @method get
      * @param  string       $key     the translation key
      * @param  array        $replace any variables to replace with
      * @param  string|null  $default optional value to return if key is not found, `null` returns the key
