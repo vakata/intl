@@ -100,13 +100,22 @@ class Intl
 
     /**
      * Get a translated string using its key in the translations array.
-     * @param  string       $key     the translation key
+     * @param  array|string $key     the translation key, if an array all values will be checked until a match is found
      * @param  array        $replace any variables to replace with
      * @param  string|null  $default optional value to return if key is not found, `null` returns the key
      * @return string       the final translated string
      */
-    public function get(string $key, array $replace = [], string $default = null) : string
+    public function get($key, array $replace = [], string $default = null) : string
     {
+        if (is_array($key)) {
+            foreach ($key as $k) {
+                $tmp = $this->get($k, $replace, chr(0));
+                if ($tmp !== chr(0)) {
+                    return $tmp;
+                }
+            }
+            return $default;
+        }
         if ($default === null) {
             $default = $key;
         }
@@ -121,7 +130,7 @@ class Intl
         $val = MF::formatMessage($this->code, (string)$val, $replace);
         return $val === false ? $default : $val;
     }
-    public function __invoke(string $key, array $replace = [], string $default = null) : string
+    public function __invoke($key, array $replace = [], string $default = null) : string
     {
         return $this->get($key, $replace, $default);
     }

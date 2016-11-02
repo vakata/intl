@@ -63,4 +63,13 @@ class IntlTest extends \PHPUnit_Framework_TestCase
 		$intl->fromArray(['test' => 'Всичко е {0}']);
 		$this->assertEquals('Всичко е ОК', $intl('test', ['ОК']));
 	}
+	public function testArrayKey() {
+		$intl = new \vakata\intl\Intl('bg_BG');
+		$intl->fromArray(['test1' => '1', 'test2' => '2']);
+		$this->assertEquals('1', $intl('test1'));
+		$this->assertEquals('2', $intl('test2'));
+		$this->assertEquals('1', $intl(['test1', 'test2']));
+		$this->assertEquals('2', $intl(['missing', 'test2']));
+		$this->assertEquals('3', $intl(['missing', 'missing2'], [], '3'));
+	}
 }
