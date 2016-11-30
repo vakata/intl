@@ -119,13 +119,22 @@ class Intl
         if ($default === null) {
             $default = $key;
         }
-        $tmp = explode('.', $key);
+        $tmp = explode('.', strtolower($key));
         $val = $this->data;
         foreach ($tmp as $k) {
-            if (!isset($val[$k])) {
+            $ok = false;
+            if (is_array($val)) {
+                foreach ($val as $kk => $vv) {
+                    if ($k === strtolower($kk)) {
+                        $val = $vv;
+                        $ok = true;
+                        break;
+                    }
+                }
+            }
+            if (!$ok) {
                 return $default;
             }
-            $val = $val[$k];
         }
         $val = MF::formatMessage($this->code, (string)$val, $replace);
         return $val === false ? $default : $val;

@@ -69,6 +69,7 @@ class IntlTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals('1', $intl('test1'));
 		$this->assertEquals('2', $intl('test2'));
 		$this->assertEquals('1', $intl(['test1', 'test2']));
+		$this->assertEquals('1', $intl(['TEST1', 'TEST2']));
 		$this->assertEquals('2', $intl(['missing', 'test2']));
 		$this->assertEquals('3', $intl(['missing', 'missing2'], [], '3'));
 	}
