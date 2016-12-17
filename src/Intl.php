@@ -19,6 +19,25 @@ class Intl
         $this->code = $code;
     }
 
+    public static function flatten($data)
+    {
+        $flat = function ($arr, &$res, $prefix = '', $glue = '.') use (&$flat) {
+            if ($prefix === '') {
+                $glue = '';
+            }
+            foreach ($arr as $k => $v) {
+                if (is_array($v)) {
+                    $flat($v, $res, $prefix . $glue . $k);
+                } else {
+                    $res[$prefix . $glue . $k] = $v;
+                }
+            }
+        };
+        $res = [];
+        $flat($data, $res);
+        return $res;
+    }
+
     /**
      * Get the locale code
      * @param  bool|boolean $short if `true` return a short (`en`), otherwise a full code (`en_US`), defaults to `false`
@@ -69,25 +88,31 @@ class Intl
 
     /**
      * Get all translations as an array
+     * @param  bool   $flat  should the resulting array be flat
      * @return array  the translations
      */
-    public function toArray() : array
+    public function toArray(bool $flat = false) : array
     {
+        if ($flat) {
+            return static::flatten($this->data);
+        }
         return $this->data;
     }
     /**
      * Save all translations to a file
      * @param  string $location the location to write the file to
      * @param  string $format   the file format (defaults to `'json'`)
+     * @param  bool   $flat     should the resulting array be flat
      * @return bool             was the file successfully written
      */
-    public function toFile(string $location, string $format = 'json') : bool
+    public function toFile(string $location, string $format = 'json', bool $flat = false) : bool
     {
+        $data = $flat ? static::flatten($this->data) : $this->data;
         switch ($format) {
             case 'json':
                 return file_put_contents(
                     $location,
-                    json_encode($this->data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_FORCE_OBJECT)
+                    json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_FORCE_OBJECT)
                 ) !== false;
             default:
                 throw new IntlException('Invalid file format');

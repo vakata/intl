@@ -29,6 +29,11 @@ class IntlTest extends \PHPUnit_Framework_TestCase
 		$data = [ 'test' => 'test', 'some' => [ 'more' => 'keys' ], 'dot.key' => 'dot.value' ];
 		$intl->fromArray($data);
 		$this->assertEquals($data, $intl->toArray());
+		$this->assertEquals([
+			'test' => 'test',
+			'some.more' => 'keys',
+			'dot.key' => 'dot.value'
+		], $intl->toArray(true));
 		$this->assertEquals('dot.value', $intl('dot.key'));
 	}
 	public function testAccess() {
