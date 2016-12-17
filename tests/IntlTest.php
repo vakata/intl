@@ -26,9 +26,10 @@ class IntlTest extends \PHPUnit_Framework_TestCase
 	}
 	public function testFromArray() {
 		$intl = new \vakata\intl\Intl('en_US');
-		$data = [ 'test' => 'test', 'some' => [ 'more' => 'keys' ] ];
+		$data = [ 'test' => 'test', 'some' => [ 'more' => 'keys' ], 'dot.key' => 'dot.value' ];
 		$intl->fromArray($data);
 		$this->assertEquals($data, $intl->toArray());
+		$this->assertEquals('dot.value', $intl('dot.key'));
 	}
 	public function testAccess() {
 		$intl = new \vakata\intl\Intl('en_US');

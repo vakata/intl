@@ -2,12 +2,8 @@
 
 namespace vakata\intl;
 
-use \MessageFormatter as MF;
-
-// https://www.sitepoint.com/localization-demystified-understanding-php-intl/
-
 /**
- * Translator class using \MessageFormatter
+ * Translator class
  */
 class Intl
 {
@@ -119,24 +115,39 @@ class Intl
         if ($default === null) {
             $default = $key;
         }
-        $tmp = explode('.', strtolower($key));
-        $val = $this->data;
-        foreach ($tmp as $k) {
-            $ok = false;
-            if (is_array($val)) {
-                foreach ($val as $kk => $vv) {
-                    if ($k === strtolower($kk)) {
-                        $val = $vv;
-                        $ok = true;
-                        break;
+        if (isset($this->data[strtolower($key)])) {
+            $val = $this->data[strtolower($key)];
+        } else {
+            $tmp = explode('.', strtolower($key));
+            $val = $this->data;
+            foreach ($tmp as $k) {
+                $ok = false;
+                if (is_array($val)) {
+                    foreach ($val as $kk => $vv) {
+                        if ($k === strtolower($kk)) {
+                            $val = $vv;
+                            $ok = true;
+                            break;
+                        }
                     }
                 }
-            }
-            if (!$ok) {
-                return $default;
+                if (!$ok) {
+                    return $default;
+                }
             }
         }
-        $val = MF::formatMessage($this->code, (string)$val, $replace);
+        if (class_exists('\MessageFormatter')) {
+            // https://www.sitepoint.com/localization-demystified-understanding-php-intl/
+            $val = \MessageFormatter::formatMessage($this->code, (string)$val, $replace);
+        } else {
+            // simple brute replacement just in case MessageFormatter is not available
+            // does not take care of special escape quotes in ICU!
+            if (count($replace)) {
+                $val = preg_replace_callback('(\{\s*([a-z0-9_\-]+)[^}]*\})i', function ($matches) use ($replace) {
+                    return $replace[$matches[1]] ?? $matches[0];
+                }, $val);
+            }
+        }
         return $val === false ? $default : $val;
     }
     public function __invoke($key, array $replace = [], string $default = null) : string
