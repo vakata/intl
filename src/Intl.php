@@ -135,7 +135,7 @@ class Intl
                     return $tmp;
                 }
             }
-            return $default;
+            return $default === null ? current($key) : $default;
         }
         if ($default === null) {
             $default = $key;
