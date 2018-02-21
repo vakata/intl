@@ -9,6 +9,7 @@ class Intl
 {
     protected $code = 'en_US';
     protected $data = [];
+    protected $used = [];
 
     /**
      * Create a new instance
@@ -132,10 +133,10 @@ class Intl
             foreach ($key as $k) {
                 $tmp = $this->get($k, $replace, chr(0));
                 if ($tmp !== chr(0)) {
-                    return $tmp;
+                    return $this->used[strtolower($k)] = $tmp;
                 }
             }
-            return $default === null ? current($key) : $default;
+            return $this->used[strtolower(current($key))] = $default === null ? current($key) : $default;
         }
         if ($default === null) {
             $default = $key;
@@ -157,10 +158,11 @@ class Intl
                     }
                 }
                 if (!$ok) {
-                    return $default;
+                    return $this->used[strtolower($key)] = $default;
                 }
             }
         }
+        $this->used[strtolower($key)] = (string)$val;
         if (class_exists('\MessageFormatter')) {
             // https://www.sitepoint.com/localization-demystified-understanding-php-intl/
             $val = \MessageFormatter::formatMessage($this->code, (string)$val, $replace);
@@ -178,5 +180,9 @@ class Intl
     public function __invoke($key, array $replace = [], string $default = null) : string
     {
         return $this->get($key, $replace, $default);
+    }
+    public function used()
+    {
+        return $this->used;
     }
 }
