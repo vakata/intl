@@ -130,11 +130,23 @@ class Intl
     public function get($key, array $replace = [], string $default = null) : string
     {
         if (is_array($key)) {
+            $found = false;
+            $value = null;
             foreach ($key as $k) {
                 $tmp = $this->get($k, $replace, chr(0));
                 if ($tmp !== chr(0)) {
-                    return $this->used[strtolower($k)] = $tmp;
+                    $found = true;
+                    $value = $tmp;
+                    break;
                 }
+            }
+            if ($found) {
+                foreach ($key as $k) {
+                    if (isset($this->used[strtolower($k)]) && $this->used[strtolower($k)] === chr(0)) {
+                        $this->used[strtolower($k)] = $value;
+                    }
+                }
+                return $value;
             }
             return $this->used[strtolower(current($key))] = $default === null ? current($key) : $default;
         }
