@@ -7,20 +7,40 @@ namespace vakata\intl;
  */
 class Intl
 {
-    protected $code = 'en_US';
     protected $data = [];
     protected $used = [];
 
-    /**
-     * Create a new instance
-     * @param  string      $code the locale code to use, defaults to `en_US`
-     */
-    public function __construct(string $code = 'en_US')
+    public function __construct(array $data = [])
     {
-        $this->code = $code;
+        $this->data = $data;
     }
 
-    public static function flatten($data)
+    /**
+     * Create an instance and load all translations from an array
+     * @param  array     $data the translations
+     * @return self
+     */
+    public static function fromArray(array $data) : self
+    {
+        return (new static)->addArray($data);
+    }
+    /**
+     * Create an instance and load all translations from a file - can be a JSON or INI file.
+     * @param  string   $location the file location
+     * @param  string   $format   the file format (defaults to 'json')
+     * @return self
+     */
+    public static function fromFile(string $location, string $format = 'json') : self
+    {
+        return (new static)->addFile($location, $format);
+    }
+    /**
+     * Helper function to flatten current data
+     *
+     * @param array $data
+     * @return array
+     */
+    protected static function flatten(array $data) : array
     {
         $flat = function ($arr, &$res, $prefix = '', $glue = '.') use (&$flat) {
             if ($prefix === '') {
@@ -40,21 +60,11 @@ class Intl
     }
 
     /**
-     * Get the locale code
-     * @param  bool|boolean $short if `true` return a short (`en`), otherwise a full code (`en_US`), defaults to `false`
-     * @return string the code
-     */
-    public function getCode(bool $short = false) : string
-    {
-        return $short ? explode('_', $this->code)[0] : $this->code;
-    }
-
-    /**
      * Load all translations from an array
      * @param  array     $data the translations
      * @return self
      */
-    public function fromArray(array $data) : Intl
+    public function addArray(array $data) : self
     {
         $this->data = array_replace_recursive($this->data, $data);
         return $this;
@@ -65,7 +75,7 @@ class Intl
      * @param  string   $format   the file format (defaults to 'json')
      * @return self
      */
-    public function fromFile(string $location, string $format = 'json') : Intl
+    public function addFile(string $location, string $format = 'json') : self
     {
         if (!is_file($location)) {
             throw new IntlException('Invalid file');
@@ -84,7 +94,19 @@ class Intl
         if (!is_array($data)) {
             throw new IntlException('Invalid file contents');
         }
-        return $this->fromArray($data);
+        return $this->addArray($data);
+    }
+
+    /**
+     * Get the locale code
+     * @param  bool|boolean $short if `true` return a short (`en`), otherwise a full code (`en_US`), defaults to `false`
+     * @return string the code
+     */
+    public function getCode(bool $short = false) : string
+    {
+        return $short ?
+            $this->get("_locale.code.short", [], "en") :
+            $this->get("_locale.code.long", [], "en_US");
     }
 
     /**
@@ -175,17 +197,14 @@ class Intl
             }
         }
         $this->used[strtolower($key)] = (string)$val;
-        if (class_exists('\MessageFormatter')) {
-            // https://www.sitepoint.com/localization-demystified-understanding-php-intl/
-            $val = \MessageFormatter::formatMessage($this->code, (string)$val, $replace);
-        } else {
-            // simple brute replacement just in case MessageFormatter is not available
-            // does not take care of special escape quotes in ICU!
-            if (count($replace)) {
-                $val = preg_replace_callback('(\{\s*([a-z0-9_\-]+)[^}]*\})i', function ($matches) use ($replace) {
-                    return $replace[$matches[1]] ?? $matches[0];
-                }, $val);
-            }
+        // removed MessageFormatter - rarely available on servers
+        // https://www.sitepoint.com/localization-demystified-understanding-php-intl/
+        // $val = \MessageFormatter::formatMessage($this->code, (string)$val, $replace);
+        // this however does not take care of special escape quotes in ICU!
+        if (count($replace)) {
+            $val = preg_replace_callback('(\{\s*([a-z0-9_\-]+)[^}]*\})i', function ($matches) use ($replace) {
+                return $replace[$matches[1]] ?? $matches[0];
+            }, $val);
         }
         return $val === false ? $default : $val;
     }
@@ -193,8 +212,55 @@ class Intl
     {
         return $this->get($key, $replace, $default);
     }
-    public function used()
+    public function used() : array
     {
         return $this->used;
+    }
+    public function date(string $format = 'short', int $timestamp = null) : string
+    {
+        if ($timestamp === null) {
+            $timestamp = time();
+        }
+        $format = $this->get("_locale.date." . $format, [], $format);
+        if ($format === 'short') {
+            $format = 'd.m.Y';
+        }
+        if ($format === 'long') {
+            $format = 'd.m.Y H:i';
+        }
+        $format = preg_replace('((?<!\\\)(D|l|S|F|M))', '~#\\\$0#~', $format);
+        $result = date($format, $timestamp);
+        return preg_replace_callback('((~#)(D|l|S|F|M)(#~))', function ($matches) use ($timestamp) {
+            switch ($matches[2]) {
+                case 'D':
+                    // Mon through Sun
+                    return $this->get("_locale.days.short." . date("N", $timestamp), [], date("D"));
+                case 'l':
+                    // Sunday through Saturday
+                    return $this->get("_locale.days.long." . date("N", $timestamp), [], date("l"));
+                case 'S':
+                    // st, nd, rd or th. Works well with j
+                    return $this->get(
+                        "_locale.days.suffixes." . date("j", $timestamp),
+                        [],
+                        $this->get("_locale.days.suffixes.default", [], "")
+                    );
+                case 'F':
+                    // January through December
+                    return $this->get("_locale.months.long." . date("n", $timestamp), [], date("F"));
+                case 'M':
+                    // Jan through Dec
+                    return $this->get("_locale.months.short." . date("n", $timestamp), [], date("M"));
+            }
+        }, $result);
+    }
+    public function number(float $number = 0.0, int $decimals = 0) : string
+    {
+        return number_format(
+            $number,
+            $decimals,
+            $this->get("_locale.numbers.decimal", [], "."),
+            $this->get("_locale.numbers.thousands", [], ",")
+        );
     }
 }
