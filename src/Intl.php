@@ -22,7 +22,7 @@ class Intl
      */
     public static function fromArray(array $data) : self
     {
-        return (new static)->addArray($data);
+        return (new self())->addArray($data);
     }
     /**
      * Create an instance and load all translations from a file - can be a JSON or INI file.
@@ -32,7 +32,7 @@ class Intl
      */
     public static function fromFile(string $location, string $format = 'json') : self
     {
-        return (new static)->addFile($location, $format);
+        return (new self())->addFile($location, $format);
     }
     /**
      * Helper function to flatten current data
@@ -149,7 +149,7 @@ class Intl
      * @param  string|null  $default optional value to return if key is not found, `null` returns the key
      * @return string       the final translated string
      */
-    public function get($key, array $replace = [], string $default = null) : string
+    public function get($key, array $replace = [], ?string $default = null) : string
     {
         if (is_array($key)) {
             $found = false;
@@ -208,7 +208,7 @@ class Intl
         }
         return $val === false ? $default : $val;
     }
-    public function __invoke($key, array $replace = [], string $default = null) : string
+    public function __invoke($key, array $replace = [], ?string $default = null) : string
     {
         return $this->get($key, $replace, $default);
     }
@@ -216,7 +216,7 @@ class Intl
     {
         return $this->used;
     }
-    public function date(string $format = 'short', int $timestamp = null) : string
+    public function date(string $format = 'short', ?int $timestamp = null) : string
     {
         if ($timestamp === null) {
             $timestamp = time();
