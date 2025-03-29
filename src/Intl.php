@@ -34,7 +34,7 @@ class Intl
     {
         return $this->lang;
     }
-    public function getLanguages(): string
+    public function getLanguages(): array
     {
         return array_keys($this->data);
     }
