@@ -7,94 +7,36 @@ namespace vakata\intl;
  */
 class Intl
 {
-    protected $data = [];
-    protected $used = [];
+    protected string $lang = '';
+    /** @var array<string,array<string,string>> $data */
+    protected array $data = [];
+    protected array $used = [];
 
-    public function __construct(array $data = [])
+    public function addTranslations(string $lang, array $data = [], bool $reset = false): self
     {
-        $this->data = $data;
-    }
-
-    /**
-     * Create an instance and load all translations from an array
-     * @param  array     $data the translations
-     * @return self
-     */
-    public static function fromArray(array $data) : self
-    {
-        return (new self())->addArray($data);
-    }
-    /**
-     * Create an instance and load all translations from a file - can be a JSON or INI file.
-     * @param  string   $location the file location
-     * @param  string   $format   the file format (defaults to 'json')
-     * @return self
-     */
-    public static function fromFile(string $location, string $format = 'json') : self
-    {
-        return (new self())->addFile($location, $format);
-    }
-    /**
-     * Helper function to flatten current data
-     *
-     * @param array $data
-     * @return array
-     */
-    protected static function flatten(array $data) : array
-    {
-        $flat = function ($arr, &$res, $prefix = '', $glue = '.') use (&$flat) {
-            if ($prefix === '') {
-                $glue = '';
-            }
-            foreach ($arr as $k => $v) {
-                if (is_array($v)) {
-                    $flat($v, $res, $prefix . $glue . $k);
-                } else {
-                    $res[$prefix . $glue . $k] = $v;
-                }
-            }
-        };
-        $res = [];
-        $flat($data, $res);
-        return $res;
-    }
-
-    /**
-     * Load all translations from an array
-     * @param  array     $data the translations
-     * @return self
-     */
-    public function addArray(array $data) : self
-    {
-        $this->data = array_replace_recursive($this->data, $data);
+        if ($reset || !isset($this->data[$lang])) {
+            $this->data[$lang] = [];
+        }
+        $this->data[$lang] = array_replace_recursive($this->data[$lang], $data);
+        if ($this->lang === '') {
+            $this->setLanguage($lang);
+        }
         return $this;
     }
-    /**
-     * Load all translations from a file - can be a JSON or INI file.
-     * @param  string   $location the file location
-     * @param  string   $format   the file format (defaults to 'json')
-     * @return self
-     */
-    public function addFile(string $location, string $format = 'json') : self
+    public function setLanguage(string $lang): self
     {
-        if (!is_file($location)) {
-            throw new IntlException('Invalid file');
+        if (isset($this->data[$lang])) {
+            $this->lang = $lang;
         }
-        $data = [];
-        switch (strtolower($format)) {
-            case 'ini':
-                $data = parse_ini_file($location, true);
-                break;
-            case 'json':
-                $data = @json_decode(file_get_contents($location), true);
-                break;
-            default:
-                throw new IntlException('Invalid file format');
-        }
-        if (!is_array($data)) {
-            throw new IntlException('Invalid file contents');
-        }
-        return $this->addArray($data);
+        return $this;
+    }
+    public function getLanguage(): string
+    {
+        return $this->lang;
+    }
+    public function getLanguages(): string
+    {
+        return array_keys($this->data);
     }
 
     /**
@@ -109,37 +51,9 @@ class Intl
             $this->get("_locale.code.long", [], "en_US");
     }
 
-    /**
-     * Get all translations as an array
-     * @param  bool   $flat  should the resulting array be flat
-     * @return array  the translations
-     */
-    public function toArray(bool $flat = false) : array
+    public function toArray(?string $lang = null) : array
     {
-        if ($flat) {
-            return static::flatten($this->data);
-        }
-        return $this->data;
-    }
-    /**
-     * Save all translations to a file
-     * @param  string $location the location to write the file to
-     * @param  string $format   the file format (defaults to `'json'`)
-     * @param  bool   $flat     should the resulting array be flat
-     * @return bool             was the file successfully written
-     */
-    public function toFile(string $location, string $format = 'json', bool $flat = false) : bool
-    {
-        $data = $flat ? static::flatten($this->data) : $this->data;
-        switch ($format) {
-            case 'json':
-                return file_put_contents(
-                    $location,
-                    json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_FORCE_OBJECT)
-                ) !== false;
-            default:
-                throw new IntlException('Invalid file format');
-        }
+        return $this->data[$lang ?? $this->lang] ?? [];
     }
 
     /**
@@ -155,6 +69,7 @@ class Intl
             $found = false;
             $value = null;
             foreach ($key as $k) {
+                $k = strtolower($k);
                 $tmp = $this->get($k, $replace, chr(0));
                 if ($tmp !== chr(0)) {
                     $found = true;
@@ -164,57 +79,36 @@ class Intl
             }
             if ($found) {
                 foreach ($key as $k) {
-                    if (isset($this->used[strtolower($k)]) && $this->used[strtolower($k)] === chr(0)) {
-                        $this->used[strtolower($k)] = $value;
+                    $k = strtolower($k);
+                    if (isset($this->used[$k]) && $this->used[$k] === chr(0)) {
+                        $this->used[$k] = $value;
                     }
                 }
                 return $value;
             }
-            return $this->used[strtolower(current($key))] = $default === null ? current($key) : $default;
+            $k = strtolower(current($key));
+            return $this->used[$k] = $default ?? $k;
         }
-        if ($default === null) {
-            $default = $key;
-        }
-        if (isset($this->data[strtolower($key)])) {
-            $val = $this->data[strtolower($key)];
-        } else {
-            $tmp = explode('.', strtolower($key));
-            $val = $this->data;
-            foreach ($tmp as $k) {
-                $ok = false;
-                if (is_array($val)) {
-                    foreach ($val as $kk => $vv) {
-                        if ($k === strtolower($kk)) {
-                            $val = $vv;
-                            $ok = true;
-                            break;
-                        }
-                    }
-                }
-                if (!$ok) {
-                    return $this->used[strtolower($key)] = $default;
-                }
-            }
-        }
-        $this->used[strtolower($key)] = (string)$val;
-        // removed MessageFormatter - rarely available on servers
-        // https://www.sitepoint.com/localization-demystified-understanding-php-intl/
-        // $val = \MessageFormatter::formatMessage($this->code, (string)$val, $replace);
-        // this however does not take care of special escape quotes in ICU!
+        $key = strtolower((string)$key);
+        $val = $this->used[$key] = $this->data[$this->lang][$key] ?? $default ?? $key;
         if (count($replace)) {
             $val = preg_replace_callback('(\{\s*([a-z0-9_\-]+)[^}]*\})i', function ($matches) use ($replace) {
                 return $replace[$matches[1]] ?? $matches[0];
             }, $val);
         }
-        return $val === false ? $default : $val;
+        return $val !== false ? $val : ($default ?? $key);
     }
     public function __invoke($key, array $replace = [], ?string $default = null) : string
     {
         return $this->get($key, $replace, $default);
     }
-    public function used() : array
+    public function getUsed(bool $reset = true) : array
     {
-        return $this->used;
+        $tmp = $this->used;
+        if ($reset) {
+            $this->used = [];
+        }
+        return $tmp;
     }
     public function date(string $format = 'short', ?int $timestamp = null) : string
     {
